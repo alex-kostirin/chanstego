@@ -30,6 +30,7 @@ func main() {
 
 func ChangePacket(packet gopacket.Packet) []byte {
 	if ipLayer := packet.Layer(layers.LayerTypeIPv4); ipLayer != nil {
+		fmt.Println("PACKET IN:")
 		fmt.Println(packet.Data())
 		ipLayer, _ := ipLayer.(*layers.IPv4)
 		ipLayer.TOS = 1
@@ -41,6 +42,7 @@ func ChangePacket(packet gopacket.Packet) []byte {
 			panic(err)
 		}
 		outgoingPacket := buffer.Bytes()
+		fmt.Println("PACKET OUT")
 		fmt.Println(outgoingPacket)
 		return outgoingPacket
 	} else {
