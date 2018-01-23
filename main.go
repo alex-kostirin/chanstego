@@ -34,11 +34,11 @@ func ChangePacket(packet gopacket.Packet) []byte {
 		ipLayer, _ := ipLayer.(*layers.IPv4)
 		ethernetLayer, _ := packet.Layer(layers.LayerTypeEthernet).(*layers.Ethernet)
 		ipLayer.TOS = 1
+		fmt.Println(ipLayer)
+		fmt.Println(ethernetLayer)
 		options := gopacket.SerializeOptions{ComputeChecksums: true}
 		buffer := gopacket.NewSerializeBuffer()
-		gopacket.SerializeLayers(buffer, options,
-			ethernetLayer,
-			ipLayer)
+		gopacket.SerializeLayers(buffer, options, ethernetLayer, ipLayer)
 		outgoingPacket := buffer.Bytes()
 		return outgoingPacket
 	} else {
