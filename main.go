@@ -29,11 +29,11 @@ func main() {
 }
 
 func ChangePacket(packet gopacket.Packet) []byte {
-	fmt.Println(packet.Dump())
 	if ipLayer := packet.Layer(layers.LayerTypeIPv4); ipLayer != nil {
+		fmt.Println(packet.Dump())
 		ipLayer, _ := ipLayer.(*layers.IPv4)
 		ethernetLayer, _ := packet.Layer(layers.LayerTypeEthernet).(*layers.Ethernet)
-
+		ipLayer.TOS = 1
 		options := gopacket.SerializeOptions{ComputeChecksums: true}
 		buffer := gopacket.NewSerializeBuffer()
 		gopacket.SerializeLayers(buffer, options,
