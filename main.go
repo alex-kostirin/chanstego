@@ -5,6 +5,7 @@ import (
 	"os"
 	"github.com/google/gopacket"
 	"github.com/alex-kostirin/go-netfilter-queue"
+	"github.com/google/gopacket/layers"
 )
 
 func main() {
@@ -27,7 +28,20 @@ func main() {
 	}
 }
 
-func ChangePacket(p gopacket.Packet) []byte {
-	fmt.Println(p.Dump())
-	return p.Data()
+func ChangePacket(packet gopacket.Packet) []byte {
+	fmt.Println(packet.Dump())
+	if ipLayer := packet.Layer(layers.LayerTypeIPv4); ipLayer != nil {
+		ipLayer, _ := ipLayer.(*layers.IPv4)
+		ethernetLayer, _ := packet.Layer(layers.LayerTypeEthernet).(*layers.Ethernet)
+
+		options := gopacket.SerializeOptions{ComputeChecksums: true}
+		buffer := gopacket.NewSerializeBuffer()
+		gopacket.SerializeLayers(buffer, options,
+			ethernetLayer,
+			ipLayer)
+		outgoingPacket := buffer.Bytes()
+		return outgoingPacket
+	} else {
+		return packet.Data()
+	}
 }
