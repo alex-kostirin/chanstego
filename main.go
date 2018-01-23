@@ -29,10 +29,10 @@ func main() {
 }
 
 func ChangePacket(packet gopacket.Packet) []byte {
-	if ipLayer := packet.Layer(layers.LayerTypeIPv4); ipLayer != nil {
+	if ethernetLayer, ipLayer := packet.Layer(layers.LayerTypeEthernet), packet.Layer(layers.LayerTypeIPv4); ethernetLayer != nil && ipLayer != nil {
 		fmt.Println(packet.Dump())
 		ipLayer, _ := ipLayer.(*layers.IPv4)
-		ethernetLayer, _ := packet.Layer(layers.LayerTypeEthernet).(*layers.Ethernet)
+		ethernetLayer, _ := ethernetLayer.(*layers.Ethernet)
 		ipLayer.TOS = 1
 		fmt.Println(ipLayer)
 		fmt.Println(ethernetLayer)
