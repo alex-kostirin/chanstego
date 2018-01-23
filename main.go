@@ -30,17 +30,20 @@ func main() {
 
 func ChangePacket(packet gopacket.Packet) []byte {
 	if ipLayer := packet.Layer(layers.LayerTypeIPv4); ipLayer != nil {
-		fmt.Println(packet.Dump())
+		fmt.Println(packet.Data())
 		ipLayer, _ := ipLayer.(*layers.IPv4)
 		ipLayer.TOS = 1
 		fmt.Println(ipLayer)
 		options := gopacket.SerializeOptions{ComputeChecksums: true}
 		buffer := gopacket.NewSerializeBuffer()
-		gopacket.SerializeLayers(buffer, options, ipLayer)
+		err := gopacket.SerializeLayers(buffer, options, ipLayer)
+		if err != nil {
+			panic(err)
+		}
 		outgoingPacket := buffer.Bytes()
+		fmt.Println(outgoingPacket)
 		return outgoingPacket
 	} else {
-		fmt.Println(packet.Dump())
 		return packet.Data()
 	}
 }
