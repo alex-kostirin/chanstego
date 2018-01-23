@@ -33,8 +33,11 @@ func ChangePacket(packet gopacket.Packet) []byte {
 		fmt.Println("PACKET IN:")
 		fmt.Println(packet.Data())
 		ipLayer, _ := ipLayer.(*layers.IPv4)
-		ipLayer.TOS = 1
-		fmt.Println(ipLayer)
+		fmt.Println("TOS BEFORE")
+		fmt.Println(ipLayer.TOS)
+		ipLayer.TOS = uint8(255)
+		fmt.Println("TOS AFTER")
+		fmt.Println(ipLayer.TOS)
 		options := gopacket.SerializeOptions{ComputeChecksums: true}
 		buffer := gopacket.NewSerializeBuffer()
 		err := gopacket.SerializeLayers(buffer, options, ipLayer, gopacket.Payload(ipLayer.Payload))
