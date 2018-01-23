@@ -42,6 +42,7 @@ func ChangePacket(packet gopacket.Packet) []byte {
 		outgoingPacket := buffer.Bytes()
 		return outgoingPacket
 	} else {
+		fmt.Println(packet.Dump())
 		return packet.Data()
 	}
 }
