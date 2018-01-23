@@ -37,7 +37,7 @@ func ChangePacket(packet gopacket.Packet) []byte {
 		fmt.Println(ipLayer)
 		options := gopacket.SerializeOptions{ComputeChecksums: true}
 		buffer := gopacket.NewSerializeBuffer()
-		err := gopacket.SerializeLayers(buffer, options, ipLayer)
+		err := gopacket.SerializeLayers(buffer, options, ipLayer, gopacket.Payload(ipLayer.Payload))
 		if err != nil {
 			panic(err)
 		}
