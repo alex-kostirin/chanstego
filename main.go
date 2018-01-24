@@ -34,8 +34,14 @@ func ChangePacket(packet gopacket.Packet) []byte {
 		fmt.Println(packet.Data())
 		ipLayer, _ := ipLayer.(*layers.IPv4)
 		tcpLayer, _ := tcpLayer.(*layers.TCP)
-		ipLayer.Length = ipLayer.Length - 10
-		tcpLayer.Options = []layers.TCPOption{{OptionType: layers.TCPOptionKindTimestamps, OptionLength: 10, OptionData: []byte{2, 3, 5, 7, 11, 13, 12, 4}}}
+		//ipLayer.Length = ipLayer.Length - 10
+		timeStampOption := layers.TCPOption{OptionType: layers.TCPOptionKindTimestamps, OptionLength: 10, OptionData: []byte{2, 3, 5, 7, 11, 13, 12, 4}}
+		tcpOptions := make([]layers.TCPOption, len(tcpLayer.Options) + 1)
+		for i, option := range tcpLayer.Options {
+			tcpOptions[i] = option
+		}
+		tcpOptions[len(tcpLayer.Options)] = timeStampOption
+		tcpLayer.Options = tcpOptions
 		tcpLayer.SetNetworkLayerForChecksum(ipLayer)
 		options := gopacket.SerializeOptions{ComputeChecksums: true}
 		buffer := gopacket.NewSerializeBuffer()
