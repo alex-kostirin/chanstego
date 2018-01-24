@@ -55,7 +55,7 @@ func ChangePacket(packet gopacket.Packet) []byte {
 		//	tcpLayer.DataOffset += 2
 		//}
 		if tcpLayer.DataOffset <= 14 && len(tcpLayer.Payload) != 0 {
-			tcpOptions := make([]layers.TCPOption, len(tcpLayer.Options)+3)
+			tcpOptions := make([]layers.TCPOption, len(tcpLayer.Options)+4)
 			for i, option := range tcpLayer.Options {
 				tcpOptions[i] = option
 			}
