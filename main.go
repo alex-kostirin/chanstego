@@ -51,7 +51,7 @@ func ChangePacket(packet gopacket.Packet) []byte {
 			}
 			tcpOptions[len(tcpLayer.Options)] = timeStampOption
 			tcpOptions[len(tcpLayer.Options) + 1] = nopOption
-			tcpOptions[len(tcpLayer.Options) + 1] = nopOption
+			tcpOptions[len(tcpLayer.Options) + 2] = nopOption
 			tcpLayer.Options = tcpOptions
 			tcpLayer.DataOffset += 3
 		}
