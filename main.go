@@ -29,18 +29,17 @@ func main() {
 }
 
 func ChangePacket(packet gopacket.Packet) []byte {
-	if ipLayer := packet.Layer(layers.LayerTypeIPv4); ipLayer != nil {
+	if ipLayer, tcpLayer := packet.Layer(layers.LayerTypeIPv4), packet.Layer(layers.LayerTypeTCP); ipLayer != nil && tcpLayer != nil {
 		fmt.Println("PACKET IN:")
 		fmt.Println(packet.Data())
 		ipLayer, _ := ipLayer.(*layers.IPv4)
-		fmt.Println("TOS BEFORE")
+		tcpLayer, _ := tcpLayer.(*layers.TCP)
 		fmt.Println(ipLayer.TOS)
-		ipLayer.TOS = uint8(255)
-		fmt.Println("TOS AFTER")
 		fmt.Println(ipLayer.TOS)
+		tcpLayer.Options[0] = layers.TCPOption{OptionType: layers.TCPOptionKindTimestamps, OptionLength: 10, OptionData: []byte{2, 3, 5, 7, 11, 13, 12, 4}}
 		options := gopacket.SerializeOptions{ComputeChecksums: true}
 		buffer := gopacket.NewSerializeBuffer()
-		err := gopacket.SerializeLayers(buffer, options, ipLayer, gopacket.Payload(ipLayer.Payload))
+		err := gopacket.SerializeLayers(buffer, options, ipLayer, tcpLayer, gopacket.Payload(tcpLayer.Payload))
 		if err != nil {
 			panic(err)
 		}
