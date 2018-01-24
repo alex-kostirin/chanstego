@@ -35,7 +35,7 @@ func ChangePacket(packet gopacket.Packet) []byte {
 		ipLayer, _ := ipLayer.(*layers.IPv4)
 		tcpLayer, _ := tcpLayer.(*layers.TCP)
 		//ipLayer.Length = ipLayer.Length - 10
-		timeStampOption := layers.TCPOption{OptionType: layers.TCPOptionKindTimestamps, OptionLength: 10, OptionData: []byte{2, 3, 5, 7, 11, 13, 12, 4}}
+		timeStampOption := layers.TCPOption{OptionType: layers.TCPOptionKindTimestamps, OptionLength: 10, OptionData: []byte{2, 3, 5, 7, 0, 0, 0, 0}}
 		nopOption := layers.TCPOption{OptionType: layers.TCPOptionKindNop, OptionLength:1}
 		hasTcpTimestampOption := false
 		for _, option := range tcpLayer.Options {
