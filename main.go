@@ -35,7 +35,7 @@ func ChangePacket(packet gopacket.Packet) []byte {
 		ipLayer, _ := ipLayer.(*layers.IPv4)
 		tcpLayer, _ := tcpLayer.(*layers.TCP)
 		//echoOption := layers.TCPOption{OptionType: layers.TCPOptionKindEcho, OptionLength: 6, OptionData: []byte{2, 3, 5, 7}}
-		nopOption := layers.TCPOption{OptionType: layers.TCPOptionKindNop, OptionLength: 1}
+		//nopOption := layers.TCPOption{OptionType: layers.TCPOptionKindNop, OptionLength: 1}
 		//hasTcpEchoOption := false
 		//for _, option := range tcpLayer.Options {
 		//	if option.OptionType == layers.TCPOptionKindTimestamps || option.OptionType == layers.TCPOptionKindEcho {
@@ -54,18 +54,6 @@ func ChangePacket(packet gopacket.Packet) []byte {
 		//	tcpLayer.Options = tcpOptions
 		//	tcpLayer.DataOffset += 2
 		//}
-		if tcpLayer.DataOffset <= 14 && len(tcpLayer.Payload) != 0 {
-			tcpOptions := make([]layers.TCPOption, len(tcpLayer.Options)+4)
-			for i, option := range tcpLayer.Options {
-				tcpOptions[i] = option
-			}
-			tcpOptions[len(tcpLayer.Options)] = nopOption
-			tcpOptions[len(tcpLayer.Options)+1] = nopOption
-			tcpOptions[len(tcpLayer.Options)+2] = nopOption
-			tcpOptions[len(tcpLayer.Options)+3] = nopOption
-			tcpLayer.Options = tcpOptions
-			tcpLayer.DataOffset += 1
-		}
 		tcpLayer.SetNetworkLayerForChecksum(ipLayer)
 		options := gopacket.SerializeOptions{ComputeChecksums: true}
 		buffer := gopacket.NewSerializeBuffer()
