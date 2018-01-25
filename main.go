@@ -12,11 +12,13 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	data := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-	n, err := stegoConn.Write(data)
+	data := make([]byte, 1)
+	data[0] = 200
+	n, err := stegoConn.Read(data)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	fmt.Println(data)
 	fmt.Println(n)
 }
