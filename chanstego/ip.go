@@ -60,7 +60,8 @@ func (c *IpTosStegoConn) Write(b []byte) (n int, err error) {
 	packets := c.NFQ.GetPackets()
 	if c.writeTimeout != -1 {
 		for _, dataByte := range b {
-			for {
+			completed := false
+			for !completed {
 				select {
 				case <-time.After(c.readTimeout):
 					{
@@ -73,7 +74,7 @@ func (c *IpTosStegoConn) Write(b []byte) (n int, err error) {
 					data := []byte{dataByte}
 					packet := c.InsertData(p.Packet, data)
 					p.SetVerdictWithPacket(netfilter.NF_ACCEPT, packet)
-					break
+					completed = true
 
 				}
 			}
@@ -81,7 +82,8 @@ func (c *IpTosStegoConn) Write(b []byte) (n int, err error) {
 		return len(b), nil
 	} else {
 		for _, dataByte := range b {
-			for {
+			completed := false
+			for !completed {
 				select {
 				case p := <-packets:
 					if !c.IsValidPacket(p.Packet) {
@@ -90,7 +92,7 @@ func (c *IpTosStegoConn) Write(b []byte) (n int, err error) {
 					data := []byte{dataByte}
 					packet := c.InsertData(p.Packet, data)
 					p.SetVerdictWithPacket(netfilter.NF_ACCEPT, packet)
-					break
+					completed = true
 				}
 			}
 		}
