@@ -104,11 +104,11 @@ func (c *IpTosStegoConn) Close() error {
 }
 
 func (c *IpTosStegoConn) LocalAddr() net.Addr {
-	return StegoAddr{StegoType: "IP.TOS"}
+	return &StegoAddr{StegoType: "IP.TOS"}
 }
 
 func (c *IpTosStegoConn) RemoteAddr() net.Addr {
-	return StegoAddr{StegoType: "IP.TOS"}
+	return &StegoAddr{StegoType: "IP.TOS"}
 }
 
 func (c *IpTosStegoConn) SetDeadline(t time.Time) error {
