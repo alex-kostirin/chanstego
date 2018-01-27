@@ -408,7 +408,7 @@ func NewIpTosStegoConn(inQueueId uint16, outQueueId uint16) (*IpTosStegoConn, er
 	if err != nil {
 		return nil, err
 	}
-	return &IpTosStegoConn{inNfq: nfqIn, outNfq: nfqOut, readDeadline: nil, writeDeadline: nil, discoverTimeout: time.Second * discoverTimeout}, nil
+	return &IpTosStegoConn{inNfq: nfqIn, outNfq: nfqOut, readDeadline: time.Now(), writeDeadline: time.Now(), discoverTimeout: time.Second * discoverTimeout}, nil
 }
 
 type IpTosStegoListener struct {
