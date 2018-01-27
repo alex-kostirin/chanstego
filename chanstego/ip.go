@@ -418,7 +418,7 @@ type IpTosStegoListener struct {
 	conn StegoConn
 }
 
-func (l *IpTosStegoListener) Accept() (StegoConn, error)  {
+func (l *IpTosStegoListener) Accept() (net.Conn, error)  {
 	stegoConn, err := NewIpTosStegoConn(l.inQueueId, l.outQueueId)
 	if err != nil {
 		stegoConn.Close()
