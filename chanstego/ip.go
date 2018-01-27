@@ -421,7 +421,6 @@ type IpTosStegoListener struct {
 func (l *IpTosStegoListener) Accept() (net.Conn, error)  {
 	stegoConn, err := NewIpTosStegoConn(l.inQueueId, l.outQueueId)
 	if err != nil {
-		stegoConn.Close()
 		return nil, err
 	}
 	err = stegoConn.Accept()
