@@ -293,6 +293,7 @@ func (c *IpTosStegoConn) isValidPacketAndAddress(packet gopacket.Packet) bool {
 	if c.isValidPacket(packet) {
 		ipLayer := packet.Layer(layers.LayerTypeIPv4)
 		ipLayerData, _ := ipLayer.(*layers.IPv4)
+		c.log.Info("Source IP is " + ipLayerData.SrcIP.String())
 		if ipLayerData.SrcIP.Equal(c.bindIp) {
 			return true
 		}
