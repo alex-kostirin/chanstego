@@ -374,7 +374,9 @@ func (c *IpTosStegoConn) Accept() error {
 			p.SetVerdictWithPacket(netfilter.NF_ACCEPT, packet)
 			if handshakeState == stateWaitingDiscover {
 				if data[0] == discoverCode {
+					c.log.Info("Got discover packet")
 					c.setBindIp(p.Packet)
+					c.log.Info("Set bind IP to " + c.bindIp.String())
 					handshakeState = stateSendingAcceptance
 				}
 			} else {
@@ -389,6 +391,7 @@ func (c *IpTosStegoConn) Accept() error {
 				p.SetVerdict(netfilter.NF_ACCEPT)
 				continue
 			}
+			c.log.Info("Sending accept code")
 			packet := c.insertData(p.Packet, []byte{acceptCode})
 			p.SetVerdictWithPacket(netfilter.NF_ACCEPT, packet)
 			handshakeState = stateWaitingOk
