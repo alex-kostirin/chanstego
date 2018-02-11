@@ -8,6 +8,8 @@ import (
 	"github.com/google/gopacket/layers"
 	"errors"
 	"fmt"
+	"github.com/google/logger"
+	"io/ioutil"
 )
 
 type IpTosStegoConn struct {
@@ -18,6 +20,7 @@ type IpTosStegoConn struct {
 	writeDeadline   time.Time
 	discoverTimeout time.Duration
 	bindIp          net.IP
+	log *logger.Logger
 }
 
 const (
@@ -317,6 +320,8 @@ func (c *IpTosStegoConn) Discover() error {
 				continue
 			}
 			data, packet := c.getData(p.Packet)
+			c.log.Infof("State is %d", handshakeState)
+			c.log.Infof("Got data in discovering connection: %x", data[0])
 			p.SetVerdictWithPacket(netfilter.NF_ACCEPT, packet)
 			if data[0] == acceptCode {
 				c.setBindIp(p.Packet)
@@ -364,6 +369,8 @@ func (c *IpTosStegoConn) Accept() error {
 				continue
 			}
 			data, packet := c.getData(p.Packet)
+			c.log.Infof("State is %d", handshakeState)
+			c.log.Infof("Got data in accepting connection: %x", data[0])
 			p.SetVerdictWithPacket(netfilter.NF_ACCEPT, packet)
 			if handshakeState == stateWaitingDiscover {
 				if data[0] == discoverCode {
@@ -408,7 +415,8 @@ func NewIpTosStegoConn(inQueueId uint16, outQueueId uint16) (*IpTosStegoConn, er
 	if err != nil {
 		return nil, err
 	}
-	return &IpTosStegoConn{inNfq: nfqIn, outNfq: nfqOut, readDeadline: time.Now(), writeDeadline: time.Now(), discoverTimeout: time.Second * discoverTimeout}, nil
+	log := logger.Init("IpTosStegoConn", true, false, ioutil.Discard)
+	return &IpTosStegoConn{inNfq: nfqIn, outNfq: nfqOut, readDeadline: time.Now(), writeDeadline: time.Now(), discoverTimeout: time.Second * discoverTimeout, log: log}, nil
 }
 
 type IpTosStegoListener struct {
