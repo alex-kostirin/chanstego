@@ -34,6 +34,9 @@ const (
 	discoverTimeout    = 100
 	maxReadBufLen      = 1024
 	maxWriteBufLen     = 1024
+	sourceIP = 10
+	destinationIP = 20
+
 )
 
 func (c *IpTosStegoConn) Read(b []byte) (n int, err error) {
@@ -52,7 +55,7 @@ func (c *IpTosStegoConn) Read(b []byte) (n int, err error) {
 	for {
 		select {
 		case p := <-packetsIn:
-			if !c.isValidPacketAndAddress(p.Packet) || !(transmissionState == stateWaitingTransmissionStart || transmissionState == stateTransmissionStarted ) {
+			if !c.isValidPacketAndAddress(p.Packet, sourceIP) || !(transmissionState == stateWaitingTransmissionStart || transmissionState == stateTransmissionStarted ) {
 				p.SetVerdict(netfilter.NF_ACCEPT)
 				continue
 			}
@@ -81,7 +84,7 @@ func (c *IpTosStegoConn) Read(b []byte) (n int, err error) {
 			}
 
 		case p := <-packetsOut:
-			if !c.isValidPacketAndAddress(p.Packet) || !(transmissionState == stateSendingTransmissionStartAcknowledgement || transmissionState == stateSendingTransmissionEndAcknowledgement ) {
+			if !c.isValidPacketAndAddress(p.Packet, destinationIP) || !(transmissionState == stateSendingTransmissionStartAcknowledgement || transmissionState == stateSendingTransmissionEndAcknowledgement ) {
 				p.SetVerdict(netfilter.NF_ACCEPT)
 				continue
 			}
@@ -177,7 +180,7 @@ func (c *IpTosStegoConn) Write(b []byte) (n int, err error) {
 	for {
 		select {
 		case p := <-packetsIn:
-			if !c.isValidPacketAndAddress(p.Packet) || !(transmissionState == stateSendingTransmissionStart || transmissionState == waitingTransmissionEndAcknowledgement ) {
+			if !c.isValidPacketAndAddress(p.Packet, sourceIP) || !(transmissionState == stateSendingTransmissionStart || transmissionState == waitingTransmissionEndAcknowledgement ) {
 				p.SetVerdict(netfilter.NF_ACCEPT)
 				continue
 			}
@@ -195,7 +198,7 @@ func (c *IpTosStegoConn) Write(b []byte) (n int, err error) {
 				}
 			}
 		case p := <-packetsOut:
-			if !c.isValidPacketAndAddress(p.Packet) || transmissionState == waitingTransmissionEndAcknowledgement {
+			if !c.isValidPacketAndAddress(p.Packet, destinationIP) || transmissionState == waitingTransmissionEndAcknowledgement {
 				p.SetVerdict(netfilter.NF_ACCEPT)
 				continue
 			}
@@ -289,13 +292,20 @@ func (c *IpTosStegoConn) isValidPacket(packet gopacket.Packet) bool {
 	return false
 }
 
-func (c *IpTosStegoConn) isValidPacketAndAddress(packet gopacket.Packet) bool {
+func (c *IpTosStegoConn) isValidPacketAndAddress(packet gopacket.Packet, ipDirection int) bool {
 	if c.isValidPacket(packet) {
 		ipLayer := packet.Layer(layers.LayerTypeIPv4)
 		ipLayerData, _ := ipLayer.(*layers.IPv4)
-		c.log.Info("Source IP is " + ipLayerData.SrcIP.String())
-		if ipLayerData.SrcIP.Equal(c.bindIp) {
-			return true
+		if ipDirection == sourceIP {
+			c.log.Info("Source IP is " + ipLayerData.SrcIP.String())
+			if ipLayerData.SrcIP.Equal(c.bindIp) {
+				return true
+			}
+		} else {
+			c.log.Info("Destination IP is " + ipLayerData.DstIP.String())
+			if ipLayerData.DstIP.Equal(c.bindIp) {
+				return true
+			}
 		}
 	}
 	return false
@@ -337,7 +347,7 @@ func (c *IpTosStegoConn) Discover() error {
 				packet := c.insertData(p.Packet, []byte{discoverCode})
 				p.SetVerdictWithPacket(netfilter.NF_ACCEPT, packet)
 			} else {
-				if !c.isValidPacketAndAddress(p.Packet) {
+				if !c.isValidPacketAndAddress(p.Packet, destinationIP) {
 					p.SetVerdict(netfilter.NF_ACCEPT)
 					continue
 				}
@@ -382,13 +392,13 @@ func (c *IpTosStegoConn) Accept() error {
 				}
 			} else {
 				if data[0] == okCode {
-					if c.isValidPacketAndAddress(p.Packet) {
+					if c.isValidPacketAndAddress(p.Packet, sourceIP) {
 						return nil
 					}
 				}
 			}
 		case p := <-packetsOut:
-			if !c.isValidPacketAndAddress(p.Packet) || handshakeState != stateSendingAcceptance {
+			if !c.isValidPacketAndAddress(p.Packet, destinationIP) || handshakeState != stateSendingAcceptance {
 				p.SetVerdict(netfilter.NF_ACCEPT)
 				continue
 			}
