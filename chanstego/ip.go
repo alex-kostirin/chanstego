@@ -2,14 +2,15 @@ package chanstego
 
 import (
 	"github.com/alex-kostirin/go-netfilter-queue"
+	"github.com/google/gopacket/layers"
+	"github.com/google/gopacket"
+	"github.com/google/logger"
+
+	"io/ioutil"
 	"time"
 	"net"
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
 	"errors"
 	"fmt"
-	"github.com/google/logger"
-	"io/ioutil"
 )
 
 type IpTosStegoConn struct {
@@ -20,7 +21,7 @@ type IpTosStegoConn struct {
 	writeDeadline   time.Time
 	discoverTimeout time.Duration
 	bindIp          net.IP
-	log *logger.Logger
+	log             *logger.Logger
 }
 
 const (
@@ -34,9 +35,8 @@ const (
 	discoverTimeout    = 100
 	maxReadBufLen      = 1024
 	maxWriteBufLen     = 1024
-	sourceIP = 10
-	destinationIP = 20
-
+	sourceIP           = iota
+	destinationIP
 )
 
 func (c *IpTosStegoConn) Read(b []byte) (n int, err error) {
@@ -46,27 +46,30 @@ func (c *IpTosStegoConn) Read(b []byte) (n int, err error) {
 	bitsInBuf := 0
 
 	const (
-		stateWaitingTransmissionStart                = 1
-		stateSendingTransmissionStartAcknowledgement = 2
-		stateTransmissionStarted                     = 3
-		stateSendingTransmissionEndAcknowledgement   = 4
+		stateWaitingTransmissionStart                = iota
+		stateSendingTransmissionStartAcknowledgement
+		stateTransmissionStarted
+		stateSendingTransmissionEndAcknowledgement
 	)
 	transmissionState := stateWaitingTransmissionStart
 	for {
 		select {
 		case p := <-packetsIn:
-			if !c.isValidPacketAndAddress(p.Packet, sourceIP) || !(transmissionState == stateWaitingTransmissionStart || transmissionState == stateTransmissionStarted ) {
+			if !c.isValidPacketAndAddress(p.Packet, sourceIP) ||
+				!(transmissionState == stateWaitingTransmissionStart ||
+					transmissionState == stateTransmissionStarted ) {
 				p.SetVerdict(netfilter.NF_ACCEPT)
 				continue
 			}
 			data, packet := c.getData(p.Packet)
 			p.SetVerdictWithPacket(netfilter.NF_ACCEPT, packet)
 			dataByte := data[0]
-			if transmissionState == stateWaitingTransmissionStart {
+			switch transmissionState {
+			case stateWaitingTransmissionStart:
 				if dataByte == startTransmitCode {
 					transmissionState = stateSendingTransmissionStartAcknowledgement
 				}
-			} else {
+			case stateTransmissionStarted:
 				if dataByte == endTransmitCode {
 					transmissionState = stateSendingTransmissionEndAcknowledgement
 					continue
@@ -84,15 +87,18 @@ func (c *IpTosStegoConn) Read(b []byte) (n int, err error) {
 			}
 
 		case p := <-packetsOut:
-			if !c.isValidPacketAndAddress(p.Packet, destinationIP) || !(transmissionState == stateSendingTransmissionStartAcknowledgement || transmissionState == stateSendingTransmissionEndAcknowledgement ) {
+			if !c.isValidPacketAndAddress(p.Packet, destinationIP) ||
+				!(transmissionState == stateSendingTransmissionStartAcknowledgement ||
+					transmissionState == stateSendingTransmissionEndAcknowledgement ) {
 				p.SetVerdict(netfilter.NF_ACCEPT)
 				continue
 			}
-			if transmissionState == stateSendingTransmissionStartAcknowledgement {
+			switch transmissionState {
+			case stateSendingTransmissionStartAcknowledgement:
 				packet := c.insertData(p.Packet, []byte{okCode})
 				p.SetVerdictWithPacket(netfilter.NF_ACCEPT, packet)
 				transmissionState = stateTransmissionStarted
-			} else {
+			case stateSendingTransmissionEndAcknowledgement:
 				packet := c.insertData(p.Packet, []byte{okCode})
 				p.SetVerdictWithPacket(netfilter.NF_ACCEPT, packet)
 				transmissionState = stateTransmissionStarted
@@ -171,43 +177,47 @@ func (c *IpTosStegoConn) Write(b []byte) (n int, err error) {
 	byteBufIndex := 0
 
 	const (
-		stateSendingTransmissionStart         = 1
-		stateTransmissionStarted              = 2
-		stateSendingTransmissionEnd           = 3
-		waitingTransmissionEndAcknowledgement = 4
+		stateSendingTransmissionStart         = iota
+		stateTransmissionStarted
+		stateSendingTransmissionEnd
+		waitingTransmissionEndAcknowledgement
 	)
 	transmissionState := stateSendingTransmissionStart
 	for {
 		select {
 		case p := <-packetsIn:
-			if !c.isValidPacketAndAddress(p.Packet, sourceIP) || !(transmissionState == stateSendingTransmissionStart || transmissionState == waitingTransmissionEndAcknowledgement ) {
+			if !c.isValidPacketAndAddress(p.Packet, sourceIP) ||
+				!(transmissionState == stateSendingTransmissionStart ||
+					transmissionState == waitingTransmissionEndAcknowledgement ) {
 				p.SetVerdict(netfilter.NF_ACCEPT)
 				continue
 			}
 			data, packet := c.getData(p.Packet)
 			p.SetVerdictWithPacket(netfilter.NF_ACCEPT, packet)
 			dataByte := data[0]
-			if transmissionState == stateSendingTransmissionStart {
+			switch transmissionState {
+			case stateSendingTransmissionStart:
 				if dataByte == okCode {
 					transmissionState = stateTransmissionStarted
 					continue
 				}
-			} else {
+			case waitingTransmissionEndAcknowledgement:
 				if dataByte == okCode {
 					return len(b), nil
 				}
 			}
 		case p := <-packetsOut:
-			if !c.isValidPacketAndAddress(p.Packet, destinationIP) || transmissionState == waitingTransmissionEndAcknowledgement {
+			if !c.isValidPacketAndAddress(p.Packet, destinationIP) ||
+				transmissionState == waitingTransmissionEndAcknowledgement {
 				p.SetVerdict(netfilter.NF_ACCEPT)
 				continue
 			}
-			if transmissionState == stateSendingTransmissionStart {
+			switch transmissionState {
+			case stateSendingTransmissionStart:
 				packet := c.insertData(p.Packet, []byte{startTransmitCode})
 				p.SetVerdictWithPacket(netfilter.NF_ACCEPT, packet)
 				continue
-			}
-			if transmissionState == stateTransmissionStarted {
+			case stateTransmissionStarted:
 				packet := c.insertData(p.Packet, []byte{byteBuf[byteBufIndex]})
 				p.SetVerdictWithPacket(netfilter.NF_ACCEPT, packet)
 				byteBufIndex++
@@ -215,8 +225,7 @@ func (c *IpTosStegoConn) Write(b []byte) (n int, err error) {
 					transmissionState = stateSendingTransmissionEnd
 				}
 				continue
-			}
-			if transmissionState == stateSendingTransmissionEnd {
+			case stateSendingTransmissionEnd:
 				packet := c.insertData(p.Packet, []byte{endTransmitCode})
 				p.SetVerdictWithPacket(netfilter.NF_ACCEPT, packet)
 				transmissionState = waitingTransmissionEndAcknowledgement
@@ -315,8 +324,8 @@ func (c *IpTosStegoConn) Discover() error {
 	packetsIn := c.inNfq.GetPackets()
 	packetsOut := c.outNfq.GetPackets()
 	const (
-		stateSendingDiscover = 1
-		stateSendingOk       = 3
+		stateSendingDiscover = iota
+		stateSendingOk
 	)
 	handshakeState := stateSendingDiscover
 	for {
@@ -343,10 +352,11 @@ func (c *IpTosStegoConn) Discover() error {
 				p.SetVerdict(netfilter.NF_ACCEPT)
 				continue
 			}
-			if handshakeState == stateSendingDiscover {
+			switch handshakeState {
+			case stateSendingDiscover:
 				packet := c.insertData(p.Packet, []byte{discoverCode})
 				p.SetVerdictWithPacket(netfilter.NF_ACCEPT, packet)
-			} else {
+			case stateSendingOk:
 				if !c.isValidPacketAndAddress(p.Packet, destinationIP) {
 					p.SetVerdict(netfilter.NF_ACCEPT)
 					continue
@@ -363,9 +373,9 @@ func (c *IpTosStegoConn) Accept() error {
 	packetsIn := c.inNfq.GetPackets()
 	packetsOut := c.outNfq.GetPackets()
 	const (
-		stateWaitingDiscover   = 1
-		stateSendingAcceptance = 2
-		stateWaitingOk         = 3
+		stateWaitingDiscover   = iota
+		stateSendingAcceptance
+		stateWaitingOk
 	)
 	handshakeState := stateWaitingDiscover
 	for {
@@ -383,14 +393,15 @@ func (c *IpTosStegoConn) Accept() error {
 			c.log.Infof("State is %d", handshakeState)
 			c.log.Infof("Got data in accepting connection: %x", data[0])
 			p.SetVerdictWithPacket(netfilter.NF_ACCEPT, packet)
-			if handshakeState == stateWaitingDiscover {
+			switch handshakeState {
+			case stateWaitingDiscover:
 				if data[0] == discoverCode {
 					c.log.Info("Got discover packet")
 					c.setBindIp(p.Packet)
 					c.log.Info("Set bind IP to " + c.bindIp.String())
 					handshakeState = stateSendingAcceptance
 				}
-			} else {
+			case stateWaitingOk:
 				if data[0] == okCode {
 					if c.isValidPacketAndAddress(p.Packet, sourceIP) {
 						return nil
@@ -435,12 +446,12 @@ func NewIpTosStegoConn(inQueueId uint16, outQueueId uint16) (*IpTosStegoConn, er
 
 type IpTosStegoListener struct {
 	StegoListener
-	inQueueId uint16
+	inQueueId  uint16
 	outQueueId uint16
-	conn StegoConn
+	conn       StegoConn
 }
 
-func (l *IpTosStegoListener) Accept() (net.Conn, error)  {
+func (l *IpTosStegoListener) Accept() (net.Conn, error) {
 	stegoConn, err := NewIpTosStegoConn(l.inQueueId, l.outQueueId)
 	if err != nil {
 		return nil, err
@@ -453,7 +464,7 @@ func (l *IpTosStegoListener) Accept() (net.Conn, error)  {
 	return stegoConn, nil
 }
 
-func (l *IpTosStegoListener) Close()  error  {
+func (l *IpTosStegoListener) Close() error {
 	err := l.conn.Close()
 	if err != nil {
 		return err
@@ -461,10 +472,10 @@ func (l *IpTosStegoListener) Close()  error  {
 	return nil
 }
 
-func (l *IpTosStegoListener) Addr()  net.Addr {
+func (l *IpTosStegoListener) Addr() net.Addr {
 	return &StegoAddr{StegoType: "IP.TOS"}
 }
 
 func NewIpTosStegoListener(inQueueId uint16, outQueueId uint16) StegoListener {
-	return &IpTosStegoListener{inQueueId:inQueueId, outQueueId:outQueueId}
+	return &IpTosStegoListener{inQueueId: inQueueId, outQueueId: outQueueId}
 }
