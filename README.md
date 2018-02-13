@@ -1,2 +1,2 @@
 # chanstego
-initial commit
+channel steganography library written on go
