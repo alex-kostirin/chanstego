@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
-	"github.com/alex-kostirin/ipstego"
+	"github.com/alex-kostirin/chanstego"
 )
 
 func main() {
