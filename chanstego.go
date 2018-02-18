@@ -1,4 +1,4 @@
-package ipstego
+package chanstego
 
 import (
 	"net"
