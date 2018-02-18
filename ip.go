@@ -1,4 +1,4 @@
-package chanstego
+package ipstego
 
 import (
 	"github.com/alex-kostirin/go-netfilter-queue"
