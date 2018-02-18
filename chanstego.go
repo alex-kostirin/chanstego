@@ -5,14 +5,19 @@ import (
 	"errors"
 	"fmt"
 )
-
+// StegoConn interface is common interface for channel steganography connection.
+// Implements net.Conn interface.
 type StegoConn interface {
 	net.Conn
+	// Discover another endpoint of channel steganography connection
 	Discover() error
+	// Accepts discovering channel steganography connection
 	Accept() error
+	// Returns ip address of binded endpoint of channel steganography connection
 	GetBindIp() net.IP
 }
 
+// StegoAddr struct implements net.Addr interface for stego connection
 type StegoAddr struct {
 	net.Addr
 	StegoType string
@@ -30,7 +35,15 @@ type StegoListener interface {
 	net.Listener
 }
 
-
+// Dial connects to netfilter queues for ingoing and outgoing packets
+// and returns new channel steganography connection.
+//
+// Known stego type is only "IP.TOS".
+//
+// You can compare usage as Dial function in net package
+//
+// Example:
+//	Dial("IP.TOS", 10, 20)
 func Dial(stegoType string, inQueueId uint16, outQueueId uint16) (StegoConn, error) {
 	if stegoType == "IP.TOS" {
 		stegoConn, err := NewIpTosStegoConn(inQueueId, outQueueId)
