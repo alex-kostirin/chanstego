@@ -4,9 +4,7 @@ import (
 	"github.com/alex-kostirin/go-netfilter-queue"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket"
-	"github.com/google/logger"
 
-	"io/ioutil"
 	"time"
 	"net"
 	"errors"
@@ -21,7 +19,6 @@ type IpTosStegoConn struct {
 	writeDeadline   time.Time
 	discoverTimeout time.Duration
 	bindIp          net.IP
-	log             *logger.Logger
 }
 
 const (
@@ -306,12 +303,10 @@ func (c *IpTosStegoConn) isValidPacketAndAddress(packet gopacket.Packet, ipDirec
 		ipLayer := packet.Layer(layers.LayerTypeIPv4)
 		ipLayerData, _ := ipLayer.(*layers.IPv4)
 		if ipDirection == sourceIP {
-			c.log.Info("Source IP is " + ipLayerData.SrcIP.String())
 			if ipLayerData.SrcIP.Equal(c.bindIp) {
 				return true
 			}
 		} else {
-			c.log.Info("Destination IP is " + ipLayerData.DstIP.String())
 			if ipLayerData.DstIP.Equal(c.bindIp) {
 				return true
 			}
@@ -340,8 +335,6 @@ func (c *IpTosStegoConn) Discover() error {
 				continue
 			}
 			data, packet := c.getData(p.Packet)
-			c.log.Infof("State is %d", handshakeState)
-			c.log.Infof("Got data in discovering connection: %x", data[0])
 			p.SetVerdictWithPacket(netfilter.NF_ACCEPT, packet)
 			if data[0] == acceptCode {
 				c.setBindIp(p.Packet)
@@ -390,15 +383,11 @@ func (c *IpTosStegoConn) Accept() error {
 				continue
 			}
 			data, packet := c.getData(p.Packet)
-			c.log.Infof("State is %d", handshakeState)
-			c.log.Infof("Got data in accepting connection: %x", data[0])
 			p.SetVerdictWithPacket(netfilter.NF_ACCEPT, packet)
 			switch handshakeState {
 			case stateWaitingDiscover:
 				if data[0] == discoverCode {
-					c.log.Info("Got discover packet")
 					c.setBindIp(p.Packet)
-					c.log.Info("Set bind IP to " + c.bindIp.String())
 					handshakeState = stateSendingAcceptance
 				}
 			case stateWaitingOk:
@@ -413,7 +402,6 @@ func (c *IpTosStegoConn) Accept() error {
 				p.SetVerdict(netfilter.NF_ACCEPT)
 				continue
 			}
-			c.log.Info("Sending accept code")
 			packet := c.insertData(p.Packet, []byte{acceptCode})
 			p.SetVerdictWithPacket(netfilter.NF_ACCEPT, packet)
 			handshakeState = stateWaitingOk
@@ -440,8 +428,7 @@ func NewIpTosStegoConn(inQueueId uint16, outQueueId uint16) (*IpTosStegoConn, er
 	if err != nil {
 		return nil, err
 	}
-	log := logger.Init("IpTosStegoConn", true, false, ioutil.Discard)
-	return &IpTosStegoConn{inNfq: nfqIn, outNfq: nfqOut, readDeadline: time.Now(), writeDeadline: time.Now(), discoverTimeout: time.Second * discoverTimeout, log: log}, nil
+	return &IpTosStegoConn{inNfq: nfqIn, outNfq: nfqOut, readDeadline: time.Now(), writeDeadline: time.Now(), discoverTimeout: time.Second * discoverTimeout}, nil
 }
 
 type IpTosStegoListener struct {
