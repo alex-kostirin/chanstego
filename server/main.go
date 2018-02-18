@@ -22,7 +22,7 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Println("Accepted stego connection on " + l.Addr().String())
-	incomingData := make([]byte, 1024)
+	incomingData := make([]byte, 10)
 	n, err := conn.Read(incomingData)
 	if err != nil {
 		fmt.Println("Error reading data: ", err.Error())

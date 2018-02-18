@@ -24,7 +24,7 @@ func main() {
 	fmt.Printf("Wrote %d bytes", n)
 	fmt.Println(outgoingData)
 
-	incomingData := make([]byte, 1024)
+	incomingData := make([]byte, 10)
 	n, err = conn.Read(incomingData)
 	if err != nil {
 		fmt.Println("Error reading data: ", err.Error())
