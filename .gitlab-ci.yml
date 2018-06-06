@@ -7,6 +7,7 @@ before_script:
   - mkdir -p $GOPATH/src/$(dirname $REPO_NAME)
   - ln -svf $CI_PROJECT_DIR $GOPATH/src/$REPO_NAME
   - cd $GOPATH/src/$REPO_NAME
+  - apt-get update -qq && apt-get install -y -qq libnetfilter-queue-dev
   - go get github.com/alex-kostirin/go-netfilter-queue
   - go get github.com/google/gopacket
 
@@ -24,7 +25,6 @@ format:
 compile:
     stage: build
     script:
-      - apt-get update -qq && apt-get install -y -qq libnetfilter-queue-dev
       - go build -o $CI_PROJECT_DIR/client $CI_PROJECT_DIR/examples/client/main.go
       - go build -o $CI_PROJECT_DIR/server $CI_PROJECT_DIR/examples/server/main.go
     artifacts:
