@@ -27,4 +27,5 @@ compile:
       - go build -o $CI_PROJECT_DIR/server $CI_PROJECT_DIR/examples/server/main.go
     artifacts:
       paths:
-        - cl
+        - client
+        - server
