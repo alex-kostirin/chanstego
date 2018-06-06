@@ -22,6 +22,7 @@ format:
 compile:
     stage: build
     script:
+      - apt-get update -qq && apt-get install -y -qq libnetfilter-queue-dev
       - go build -o $CI_PROJECT_DIR/client $CI_PROJECT_DIR/examples/client/main.go
       - go build -o $CI_PROJECT_DIR/server $CI_PROJECT_DIR/examples/server/main.go
     artifacts:
